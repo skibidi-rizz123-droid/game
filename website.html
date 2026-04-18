@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <title>System</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      font-family: 'Roboto', sans-serif;
+      background: #1a1a2e;
+      touch-action: none;
+    }
+
+    .android-bg {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #0f3460 0%, #16213e 40%, #1a1a2e 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding-top: 60px;
+      gap: 30px;
+    }
+
+    .android-clock {
+      color: white;
+      font-size: clamp(48px, 14vw, 72px);
+      font-weight: 100;
+      letter-spacing: 2px;
+      opacity: 0.95;
+    }
+
+    .android-date {
+      color: rgba(255,255,255,0.75);
+      font-size: clamp(13px, 3.5vw, 16px);
+      margin-top: -20px;
+    }
+
+    .app-grid {
+      display: grid;
+      grid-template-columns: repeat(4, clamp(52px, 13vw, 64px));
+      gap: clamp(14px, 4vw, 22px);
+      margin-top: 20px;
+    }
+
+    .app-icon {
+      width: clamp(52px, 13vw, 64px);
+      height: clamp(52px, 13vw, 64px);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(22px, 6vw, 30px);
+      opacity: 0.85;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(3px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      padding: 16px;
+    }
+
+    .dialog {
+      background: #2d2d2d;
+      border-radius: 28px;
+      width: 100%;
+      max-width: 340px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+      position: relative;
+      overflow: visible;
+      animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.85); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+
+    .dialog-inner { border-radius: 28px; overflow: hidden; }
+
+    .dialog-header {
+      background: #3d3d3d;
+      padding: 16px 20px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .dialog-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .warning-icon {
+      width: 28px;
+      height: 28px;
+      background: #f44336;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: bold;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .dialog-title {
+      font-size: clamp(12px, 3.5vw, 14px);
+      font-weight: 600;
+      color: #f5f5f5;
+    }
+
+    .close-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: rgba(255,255,255,0.5);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+      user-select: none;
+    }
+
+    .close-btn:hover  { background: rgba(255,255,255,0.18); }
+    .close-btn:active { background: rgba(255,255,255,0.22); transform: scale(0.95); }
+
+    .dialog-body { padding: 20px 22px 10px; }
+
+    .app-name-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .app-crash-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .app-crash-name {
+      font-size: clamp(13px, 3.8vw, 15px);
+      font-weight: 600;
+      color: #f0f0f0;
+    }
+
+    .app-crash-pkg {
+      font-size: clamp(10px, 2.8vw, 11px);
+      color: rgba(255,255,255,0.4);
+      margin-top: 1px;
+    }
+
+    .crash-message {
+      font-size: clamp(12px, 3.3vw, 13px);
+      color: rgba(255,255,255,0.7);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .error-code-box {
+      background: #1e1e1e;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .error-code-box pre {
+      font-family: 'Courier New', monospace;
+      font-size: clamp(9px, 2.4vw, 10.5px);
+      color: #f44336;
+      white-space: pre-wrap;
+      word-break: break-all;
+      line-height: 1.6;
+    }
+
+    .error-label {
+      font-size: 10px;
+      color: rgba(255,255,255,0.3);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+
+    .dialog-actions {
+      padding: 4px 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .btn-report {
+      width: 100%;
+      padding: 13px;
+      border-radius: 14px;
+      border: none;
+      background: #f44336;
+      color: white;
+      font-size: clamp(13px, 3.8vw, 14px);
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .btn-report:hover  { background: #e53935; }
+    .btn-report:active { transform: scale(0.98); background: #d32f2f; }
+
+    .btn-dismiss {
+      padding: 13px 20px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: #2d2d2d;
+      color: rgba(255,255,255,0.6);
+      font-size: clamp(13px, 3.8vw, 14px);
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, color 0.3s, border-color 0.3s, transform 0.15s;
+      position: fixed;
+      white-space: nowrap;
+      z-index: 999;
+    }
+
+    .btn-dismiss:hover { background: rgba(255,255,255,0.05); }
+
+    .btn-dismiss.got-you {
+      background: #4caf50 !important;
+      border-color: #4caf50 !important;
+      color: white !important;
+      font-weight: 700 !important;
+      font-size: 15px !important;
+      animation: pulse 0.5s ease-in-out 3;
+      pointer-events: none;
+    }
+
+    @keyframes pulse {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+
+    .status-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      z-index: 20;
+    }
+
+    .status-time  { color: white; font-size: 12px; font-weight: 600; }
+    .status-icons { color: white; font-size: 12px; display: flex; gap: 6px; align-items: center; }
+    .battery      { font-size: 14px; }
+
+    /* Placeholder to hold the space where dismiss button was */
+    .dismiss-placeholder {
+      width: 100%;
+      padding: 13px;
+      border-radius: 14px;
+      visibility: hidden;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="android-bg">
+    <div class="android-clock" id="clock">9:41</div>
+    <div class="android-date" id="dateStr">Saturday, April 18</div>
+    <div class="app-grid">
+      <div class="app-icon" style="background:#1565c0">📷</div>
+      <div class="app-icon" style="background:#2e7d32">💬</div>
+      <div class="app-icon" style="background:#6a1b9a">🎵</div>
+      <div class="app-icon" style="background:#bf360c">📧</div>
+      <div class="app-icon" style="background:#00695c">🗺️</div>
+      <div class="app-icon" style="background:#4527a0">📅</div>
+      <div class="app-icon" style="background:#37474f">⚙️</div>
+      <div class="app-icon" style="background:#1b5e20">📞</div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <span class="status-time" id="statusTime">9:41</span>
+    <div class="status-icons">
+      <span>▲▲▲</span>
+      <span>WiFi</span>
+      <span class="battery">🔋</span>
+      <span>84%</span>
+    </div>
+  </div>
+
+  <div class="overlay">
+    <div class="dialog">
+      <div class="dialog-inner">
+        <div class="dialog-header">
+          <div class="dialog-header-left">
+            <div class="warning-icon">!</div>
+            <span class="dialog-title">System UI has stopped</span>
+          </div>
+          <button class="close-btn" onclick="fakeClose(this)">✕</button>
+        </div>
+
+        <div class="dialog-body">
+          <div class="app-name-row">
+            <div class="app-crash-icon">📱</div>
+            <div>
+              <div class="app-crash-name">System UI</div>
+              <div class="app-crash-pkg">com.android.systemui</div>
+            </div>
+          </div>
+
+          <p class="crash-message">
+            System UI keeps stopping. Your device may become unstable. Repeated crashes have been detected in a core system process.
+          </p>
+
+          <div class="error-code-box">
+            <div class="error-label">Stack Trace</div>
+            <pre>FATAL EXCEPTION: main
+Process: com.android.systemui
+java.lang.NullPointerException
+  at android.view.ViewGroup.dispatchDraw(ViewGroup.java:4182)
+  at com.android.systemui.statusbar.phone
+    .StatusBarWindowView.onDraw(:312)
+  at android.os.Handler.handleCallback(:938)
+  at android.os.Looper.loop(:233)</pre>
+          </div>
+        </div>
+
+        <div class="dialog-actions">
+          <button class="btn-report" onclick="fakeReport()">Send Error Report</button>
+          <!-- placeholder keeps layout stable when button goes fixed/floating -->
+          <div class="dismiss-placeholder" id="dismissPlaceholder"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dismiss button lives outside dialog so it can float anywhere -->
+  <button class="btn-dismiss" id="dismissBtn"
+          onmousemove="dodgeBtn(event)"
+          ontouchmove="dodgeBtnTouch(event)">Dismiss</button>
+
+  <script>
+    // ── Clock ────────────────────────────────────────────────────────────────
+    function updateClock() {
+      const now = new Date();
+      let h = now.getHours(), m = now.getMinutes();
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      const timeStr = `${h}:${String(m).padStart(2,'0')}`;
+      document.getElementById('clock').textContent = timeStr;
+      document.getElementById('statusTime').textContent = timeStr + ' ' + ampm;
+      const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      const months = ['January','February','March','April','May','June','July',
+                      'August','September','October','November','December'];
+      document.getElementById('dateStr').textContent =
+        `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // ── Position dismiss button over placeholder on load ─────────────────────
+    const btn = document.getElementById('dismissBtn');
+    const placeholder = document.getElementById('dismissPlaceholder');
+
+    function snapToPlaceholder() {
+      const r = placeholder.getBoundingClientRect();
+      btn.style.left   = r.left + 'px';
+      btn.style.top    = r.top  + 'px';
+      btn.style.width  = r.width + 'px';
+      btn.style.transition = 'none';
+    }
+
+    // Wait for full layout before snapping
+    window.addEventListener('load', () => {
+      snapToPlaceholder();
+    });
+    // Fallback in case load already fired
+    if (document.readyState === 'complete') snapToPlaceholder();
+    window.addEventListener('resize', () => { if (!revealed) snapToPlaceholder(); });
+
+    // ── Fake close (does nothing) ─────────────────────────────────────────────
+    function fakeClose(b) {
+      b.style.transform = 'scale(0.88)';
+      setTimeout(() => b.style.transform = '', 150);
+    }
+
+    // ── Dodge logic ───────────────────────────────────────────────────────────
+    let revealed = false;
+
+    function dodge(cx, cy) {
+      if (revealed) return;
+      const rect = btn.getBoundingClientRect();
+      const bx = rect.left + rect.width  / 2;
+      const by = rect.top  + rect.height / 2;
+      const dx = cx - bx, dy = cy - by;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < 90) {
+        const angle = Math.atan2(dy, dx);
+        const flee  = 100;
+        let newLeft = rect.left - Math.cos(angle) * flee;
+        let newTop  = rect.top  - Math.sin(angle) * flee;
+
+        newLeft = Math.max(8, Math.min(window.innerWidth  - rect.width  - 8, newLeft));
+        newTop  = Math.max(8, Math.min(window.innerHeight - rect.height - 8, newTop));
+
+        btn.style.transition = 'left 0.12s, top 0.12s';
+        btn.style.left = newLeft + 'px';
+        btn.style.top  = newTop  + 'px';
+      }
+    }
+
+    function dodgeBtn(e)      { dodge(e.clientX, e.clientY); }
+    function dodgeBtnTouch(e) {
+      e.preventDefault();
+      const t = e.touches[0];
+      dodge(t.clientX, t.clientY);
+    }
+
+    // Also dodge when cursor moves anywhere near it on desktop
+    document.addEventListener('mousemove', dodgeBtn);
+
+    // ── "Got you!!!" reveal after 15 seconds ─────────────────────────────────
+    setTimeout(() => {
+      revealed = true;
+
+      // Snap back to center of screen
+      btn.style.transition = 'left 0.4s, top 0.4s, background 0.4s, color 0.4s, width 0.4s';
+      btn.style.left   = '50%';
+      btn.style.top    = '50%';
+      btn.style.width  = 'auto';
+      btn.style.transform = 'translate(-50%, -50%)';
+
+      setTimeout(() => {
+        btn.textContent = '😂 Got you!!!';
+        btn.classList.add('got-you');
+      }, 420);
+
+    }, 15000);
+
+    // ── Fake "Send Error Report" ──────────────────────────────────────────────
+    function fakeReport() {
+      const b = document.querySelector('.btn-report');
+      b.textContent = 'Sending…';
+      b.disabled    = true;
+      b.style.opacity = '0.6';
+      setTimeout(() => {
+        b.textContent        = 'Failed to send';
+        b.style.background   = '#555';
+      }, 2200);
+    }
+  </script>
+</body>
+</html>
